@@ -31,6 +31,15 @@ class AuthService {
       throw 'Error signing up: $e';
     }
   }
+  Future<void> resetPassword(String email) async {
+  try {
+    await FirebaseAuth.instance.sendPasswordResetEmail(
+      email: email.trim(),
+    );
+  } on FirebaseAuthException catch (e) {
+    throw Exception(e.message ?? 'Unable to reset password');
+  }
+}
 
   // Sign out
   Future<void> signOut() async {

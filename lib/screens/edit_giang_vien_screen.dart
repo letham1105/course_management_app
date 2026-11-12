@@ -1,29 +1,30 @@
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../models/product_model.dart';
+import '../models/giang_vien_model.dart';
 import '../services/firestore_service.dart';
 import '../services/cloudinary_service.dart';
 
-class ProductDetailScreen extends StatefulWidget {
-  final Product product;
+class EditGiangVienScreen extends StatefulWidget {
+  final GiangVien giangVien;
 
-  const ProductDetailScreen({
+  const EditGiangVienScreen({
     super.key,
-    required this.product,
+    required this.giangVien,
   });
 
   @override
-  State<ProductDetailScreen> createState() =>
-      _ProductDetailScreenState();
+  State<EditGiangVienScreen> createState() =>
+      _EditGiangVienScreenState();
 }
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
+class _EditGiangVienScreenState extends State<EditGiangVienScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController _nameController;
-  late final TextEditingController _typeController;
-  late final TextEditingController _priceController;
+  late final TextEditingController _idController;
+  late final TextEditingController _fullnameController;
+  late final TextEditingController _sumClassController;
 
   final FirestoreService _firestoreService = FirestoreService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
@@ -34,6 +35,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isLoading = false;
 
   static const Color primaryColor = Color(0xFF5146E5);
+
   static const String defaultAssetImagePath =
       'assets/default_product.png';
 
@@ -41,29 +43,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
 
-    _nameController = TextEditingController(
-      text: widget.product.name,
+    _idController = TextEditingController(
+      text: widget.giangVien.idgv,
     );
 
-    _typeController = TextEditingController(
-      text: widget.product.type,
+    _fullnameController = TextEditingController(
+      text: widget.giangVien.fullname,
     );
 
-    _priceController = TextEditingController(
-      text: widget.product.price.toString(),
+    _sumClassController = TextEditingController(
+      text: widget.giangVien.sumClass.toString(),
     );
 
-    _currentImageUrl = widget.product.imageUrl;
+    _currentImageUrl = widget.giangVien.image;
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _typeController.dispose();
-    _priceController.dispose();
+    _idController.dispose();
+    _fullnameController.dispose();
+    _sumClassController.dispose();
     super.dispose();
   }
 
+  // Chọn ảnh mới
   Future<void> _pickNewImage() async {
     final picker = ImagePicker();
 
@@ -77,6 +80,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  // Cập nhật thông tin giảng viên
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -85,36 +89,45 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       String imageUrl = _currentImageUrl;
 
+      // Upload ảnh mới nếu người dùng chọn
       if (_newImage != null) {
         imageUrl = await _cloudinaryService.uploadImage(_newImage!);
+
+        if (imageUrl.isEmpty) {
+          throw Exception('Image upload failed');
+        }
       }
 
-      final updatedProduct = Product(
-        id: widget.product.id,
-        name: _nameController.text.trim(),
-        type: _typeController.text.trim(),
-        price: double.parse(_priceController.text.trim()),
-        imageUrl: imageUrl,
+      // Tạo đối tượng giảng viên đã cập nhật
+      final updatedGiangVien = GiangVien(
+        idgv: _idController.text.trim(),
+        fullname: _fullnameController.text.trim(),
+        image: imageUrl,
+        sumClass: int.parse(_sumClassController.text.trim()),
       );
 
-      await _firestoreService.updateProduct(updatedProduct);
+      // Cập nhật Firestore
+      await _firestoreService.updateGiangVien(
+        widget.giangVien.idgv,
+        updatedGiangVien,
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Product updated successfully'),
+          content: Text('Lecturer updated successfully'),
           backgroundColor: Colors.green,
         ),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error updating product: $e'),
+          content: Text('Error updating lecturer: $e'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -125,7 +138,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  Widget _buildProductImage() {
+  // Hiển thị ảnh giảng viên
+  Widget _buildGiangVienImage() {
     if (_newImage != null) {
       return FutureBuilder(
         future: _newImage!.readAsBytes(),
@@ -139,7 +153,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           }
 
           return const Center(
-            child: CircularProgressIndicator(color: primaryColor),
+            child: CircularProgressIndicator(
+              color: primaryColor,
+            ),
           );
         },
       );
@@ -166,13 +182,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  // Input decoration
   InputDecoration _inputDecoration(
     String label,
     IconData icon,
   ) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: primaryColor),
+      prefixIcon: Icon(
+        icon,
+        color: primaryColor,
+      ),
       filled: true,
       fillColor: const Color(0xFFF5F6FA),
       border: OutlineInputBorder(
@@ -181,7 +201,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
+        borderSide: const BorderSide(
+          color: Color(0xFFE8EAF0),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -200,9 +222,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
+
       appBar: AppBar(
         title: const Text(
-          'Product Details',
+          'Edit Lecturer',
           style: TextStyle(
             color: Color(0xFF20243A),
             fontWeight: FontWeight.bold,
@@ -212,32 +235,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         foregroundColor: const Color(0xFF20243A),
         elevation: 0,
       ),
+
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 550),
+              constraints: const BoxConstraints(
+                maxWidth: 550,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'Edit Product',
+                      'Edit Lecturer Information',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF20243A),
                       ),
                     ),
+
                     const SizedBox(height: 6),
+
                     const Text(
-                      'Update your product information below.',
+                      'Update lecturer information below.',
                       style: TextStyle(color: Colors.grey),
                     ),
+
                     const SizedBox(height: 22),
 
+                    // Lecturer Image
                     Container(
                       height: 240,
                       clipBehavior: Clip.antiAlias,
@@ -251,13 +281,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          _buildProductImage(),
+                          _buildGiangVienImage(),
+
                           Positioned(
                             bottom: 12,
                             right: 12,
                             child: ElevatedButton.icon(
-                              onPressed:
-                                  _isLoading ? null : _pickNewImage,
+                              onPressed: _isLoading
+                                  ? null
+                                  : _pickNewImage,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryColor,
                                 foregroundColor: Colors.white,
@@ -268,6 +300,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               label: const Text('Change Image'),
                             ),
                           ),
+
                           if (hasImage)
                             Positioned(
                               top: 8,
@@ -293,67 +326,81 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 24),
 
+                    // IDGV
                     TextFormField(
-                      controller: _nameController,
+                      controller: _idController,
+                      textCapitalization:
+                          TextCapitalization.characters,
                       decoration: _inputDecoration(
-                        'Product Name',
-                        Icons.shopping_bag_outlined,
+                        'Lecturer ID',
+                        Icons.badge_outlined,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter product name';
+                          return 'Please enter lecturer ID';
                         }
+
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 16),
 
+                    // Fullname
                     TextFormField(
-                      controller: _typeController,
+                      controller: _fullnameController,
+                      textCapitalization:
+                          TextCapitalization.words,
                       decoration: _inputDecoration(
-                        'Product Type',
-                        Icons.category_outlined,
+                        'Full Name',
+                        Icons.person_outline,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter product type';
+                          return 'Please enter full name';
                         }
+
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 16),
 
+                    // SumClass
                     TextFormField(
-                      controller: _priceController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
+                      controller: _sumClassController,
+                      keyboardType: TextInputType.number,
                       decoration: _inputDecoration(
-                        'Price',
-                        Icons.attach_money,
+                        'Total Classes',
+                        Icons.class_outlined,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter product price';
+                          return 'Please enter total classes';
                         }
 
-                        final price = double.tryParse(value.trim());
+                        final sumClass =
+                            int.tryParse(value.trim());
 
-                        if (price == null || price < 0) {
-                          return 'Enter a valid price';
+                        if (sumClass == null || sumClass < 0) {
+                          return 'Enter a valid non-negative integer';
                         }
 
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 28),
 
+                    // Save Changes
                     SizedBox(
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _saveChanges,
+                        onPressed:
+                            _isLoading ? null : _saveChanges,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,

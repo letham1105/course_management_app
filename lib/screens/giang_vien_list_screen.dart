@@ -1,25 +1,26 @@
+
 import 'package:flutter/material.dart';
 
-import '../models/product_model.dart';
+import '../models/giang_vien_model.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
-import 'add_product_screen.dart';
+import 'add_giang_vien_screen.dart';
 import 'login_screen.dart';
-import 'product_detail_screen.dart';
+import 'edit_giang_vien_screen.dart';
 
-class ProductListScreen extends StatefulWidget {
-  const ProductListScreen({super.key});
+class GiangVienListScreen extends StatefulWidget {
+  const GiangVienListScreen({super.key});
 
   @override
-  State<ProductListScreen> createState() => _ProductListScreenState();
+  State<GiangVienListScreen> createState() => _GiangVienListScreenState();
 }
 
-class _ProductListScreenState extends State<ProductListScreen> {
+class _GiangVienListScreenState extends State<GiangVienListScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
-  String _selectedType = 'All';
+  String _selectedId = 'All';
 
   static const Color primaryColor = Color(0xFF5146E5);
   static const String defaultAssetImagePath =
@@ -31,16 +32,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.dispose();
   }
 
-  List<Product> _filterProducts(List<Product> products) {
-    return products.where((product) {
+  List<GiangVien> _filterGiangViens(List<GiangVien> giangViens) {
+    return giangViens.where((giangVien) {
+      final query = _searchQuery.toLowerCase();
+
       final matchesSearch =
-          product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          product.type.toLowerCase().contains(_searchQuery.toLowerCase());
+          giangVien.fullname.toLowerCase().contains(query) ||
+          giangVien.idgv.toLowerCase().contains(query);
 
-      final matchesType =
-          _selectedType == 'All' || product.type == _selectedType;
+      final matchesId =
+          _selectedId == 'All' || giangVien.idgv == _selectedId;
 
-      return matchesSearch && matchesType;
+      return matchesSearch && matchesId;
     }).toList();
   }
 
@@ -91,16 +94,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  Future<void> _confirmDelete(Product product) async {
+  Future<void> _confirmDelete(GiangVien giangVien) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),
-        title: const Text('Delete Product'),
+        title: const Text('Delete Lecturer'),
         content: Text(
-          'Are you sure you want to delete "${product.name}"?',
+          'Are you sure you want to delete "${giangVien.fullname}"?',
         ),
         actions: [
           TextButton(
@@ -122,23 +125,41 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (shouldDelete != true) return;
 
     try {
-      await _firestoreService.deleteProduct(product);
+      await _firestoreService.deleteGiangVien(giangVien);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product deleted successfully')),
+        const SnackBar(content: Text('Lecturer deleted successfully')),
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting product: $e')),
+        SnackBar(content: Text('Error deleting lecturer: $e')),
       );
     }
   }
 
-  Widget _buildProductCard(Product product) {
+  Widget _buildImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return Image.asset(
+        defaultAssetImagePath,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Image.asset(
+        defaultAssetImagePath,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildGiangVienCard(GiangVien giangVien) {
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -154,19 +175,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                product.imageUrl.isNotEmpty
-                    ? Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          defaultAssetImagePath,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Image.asset(
-                        defaultAssetImagePath,
-                        fit: BoxFit.cover,
-                      ),
+                _buildImage(giangVien.image),
                 Positioned(
                   top: 8,
                   right: 8,
@@ -177,12 +186,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                ProductDetailScreen(product: product),
+                            builder: (_) => EditGiangVienScreen(
+                              giangVien: giangVien,
+                            ),
                           ),
                         );
                       } else if (value == 'delete') {
-                        _confirmDelete(product);
+                        _confirmDelete(giangVien);
                       }
                     },
                     itemBuilder: (_) => const [
@@ -230,7 +240,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.name,
+                  giangVien.fullname,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -241,7 +251,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  product.type,
+                  'ID: ${giangVien.idgv}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -251,7 +261,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
                 const SizedBox(height: 9),
                 Text(
-                  '\$${product.price.toStringAsFixed(2)}',
+                  '${giangVien.sumClass} classes',
                   style: const TextStyle(
                     color: primaryColor,
                     fontSize: 16,
@@ -266,7 +276,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  Widget _buildProductListTile(Product product) {
+  Widget _buildGiangVienListTile(GiangVien giangVien) {
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -282,23 +292,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
           child: SizedBox(
             width: 65,
             height: 65,
-            child: product.imageUrl.isNotEmpty
-                ? Image.network(
-                    product.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      defaultAssetImagePath,
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                : Image.asset(
-                    defaultAssetImagePath,
-                    fit: BoxFit.cover,
-                  ),
+            child: _buildImage(giangVien.image),
           ),
         ),
         title: Text(
-          product.name,
+          giangVien.fullname,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -306,7 +304,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 5),
           child: Text(
-            '${product.type}  •  \$${product.price.toStringAsFixed(2)}',
+            '${giangVien.idgv}  •  ${giangVien.sumClass} classes',
             style: const TextStyle(
               color: primaryColor,
               fontWeight: FontWeight.w600,
@@ -319,11 +317,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ProductDetailScreen(product: product),
+                  builder: (_) => EditGiangVienScreen(
+                    giangVien: giangVien,
+                  ),
                 ),
               );
             } else if (value == 'delete') {
-              _confirmDelete(product);
+              _confirmDelete(giangVien);
             }
           },
           itemBuilder: (_) => const [
@@ -341,7 +341,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(product: product),
+              builder: (_) => EditGiangVienScreen(
+                giangVien: giangVien,
+              ),
             ),
           );
         },
@@ -358,10 +360,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         elevation: 0,
         title: const Row(
           children: [
-            Icon(Icons.shopping_bag_rounded, color: primaryColor),
+            Icon(Icons.school_rounded, color: primaryColor),
             SizedBox(width: 10),
             Text(
-              'Product Manager',
+              'Lecturer Manager',
               style: TextStyle(
                 color: Color(0xFF20243A),
                 fontWeight: FontWeight.bold,
@@ -383,21 +385,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const AddProductScreen(),
+              builder: (_) => const AddGiangVienScreen(),
             ),
           );
         },
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Add Product'),
+        label: const Text('Add Lecturer'),
       ),
-      body: StreamBuilder<List<Product>>(
-        stream: _firestoreService.getProductsStream(),
+      body: StreamBuilder<List<GiangVien>>(
+        stream: _firestoreService.getGiangViensStream(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
-              child: Text('Error loading products: ${snapshot.error}'),
+              child: Text('Error loading lecturers: ${snapshot.error}'),
             );
           }
 
@@ -408,16 +410,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
             );
           }
 
-          final allProducts = snapshot.data ?? [];
+          final allGiangViens = snapshot.data ?? [];
 
-          final productTypes = allProducts
-              .map((product) => product.type)
-              .where((type) => type.isNotEmpty)
+          final lecturerIds = allGiangViens
+              .map((giangVien) => giangVien.idgv)
+              .where((id) => id.isNotEmpty)
               .toSet()
               .toList()
             ..sort();
 
-          final filteredProducts = _filterProducts(allProducts);
+          final filteredGiangViens = _filterGiangViens(allGiangViens);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,7 +430,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Your Products',
+                      'Lecturers',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -437,7 +439,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      '${allProducts.length} products in your collection',
+                      '${allGiangViens.length} lecturers in your collection',
                       style: const TextStyle(color: Colors.grey),
                     ),
                     const SizedBox(height: 18),
@@ -447,7 +449,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         setState(() => _searchQuery = value);
                       },
                       decoration: InputDecoration(
-                        hintText: 'Search products...',
+                        hintText: 'Search by lecturer name or ID...',
                         prefixIcon: const Icon(Icons.search),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
@@ -472,17 +474,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       child: Row(
                         children: [
                           'All',
-                          ...productTypes,
-                        ].map((type) {
-                          final selected = _selectedType == type;
+                          ...lecturerIds,
+                        ].map((id) {
+                          final selected = _selectedId == id;
 
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: ChoiceChip(
-                              label: Text(type),
+                              label: Text(id),
                               selected: selected,
                               onSelected: (_) {
-                                setState(() => _selectedType = type);
+                                setState(() => _selectedId = id);
                               },
                               selectedColor: primaryColor,
                               backgroundColor: Colors.white,
@@ -503,21 +505,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
               ),
               Expanded(
-                child: filteredProducts.isEmpty
+                child: filteredGiangViens.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
-                              Icons.inventory_2_outlined,
+                              Icons.school_outlined,
                               size: 64,
                               color: Colors.grey,
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              allProducts.isEmpty
-                                  ? 'No products yet'
-                                  : 'No matching products found',
+                              allGiangViens.isEmpty
+                                  ? 'No lecturers yet'
+                                  : 'No matching lecturers found',
                               style: const TextStyle(
                                 color: Colors.grey,
                                 fontSize: 16,
@@ -535,10 +537,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               padding: const EdgeInsets.fromLTRB(
                                 16, 4, 16, 90,
                               ),
-                              itemCount: filteredProducts.length,
+                              itemCount: filteredGiangViens.length,
                               itemBuilder: (context, index) {
-                                return _buildProductListTile(
-                                  filteredProducts[index],
+                                return _buildGiangVienListTile(
+                                  filteredGiangViens[index],
                                 );
                               },
                             );
@@ -558,10 +560,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               mainAxisSpacing: 16,
                               childAspectRatio: 0.78,
                             ),
-                            itemCount: filteredProducts.length,
+                            itemCount: filteredGiangViens.length,
                             itemBuilder: (context, index) {
-                              return _buildProductCard(
-                                filteredProducts[index],
+                              return _buildGiangVienCard(
+                                filteredGiangViens[index],
                               );
                             },
                           );

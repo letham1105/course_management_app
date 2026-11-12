@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
+import 'forgot_password_screen.dart';
 import '../services/auth_service.dart';
-import 'product_list_screen.dart';
+import 'giang_vien_list_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -44,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => const ProductListScreen(),
+          builder: (_) => const GiangVienListScreen(),
         ),
       );
     } catch (e) {
@@ -115,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: const Icon(
-                        Icons.shopping_bag_rounded,
+                        Icons.school_rounded,
                         color: Colors.white,
                         size: 38,
                       ),
@@ -132,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Sign in to manage your products.',
+                      'Sign in to manage lecturers.',
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey,
@@ -151,11 +153,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter your email';
                         }
+
                         if (!RegExp(
                           r'^[^@]+@[^@]+\.[^@]+$',
                         ).hasMatch(value.trim())) {
                           return 'Enter a valid email address';
                         }
+
                         return null;
                       },
                     ),
@@ -184,11 +188,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';
                         }
+
                         return null;
                       },
                     ),
                     const SizedBox(height: 26),
-
+                    Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
                     SizedBox(
                       height: 54,
                       child: ElevatedButton(
