@@ -1,5 +1,3 @@
-# product_management
-
 A new Flutter project.
 
 ## Getting Started
